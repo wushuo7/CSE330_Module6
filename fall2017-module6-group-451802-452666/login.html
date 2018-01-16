@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8"/>
+    <title>Go Chat!  </title>
+    <style>
+                p#welcomewords3{
+                text-align:center;
+                font-family:fantasy;
+                font-size: 60px;
+                font-weight: bold;
+                width: 100%;
+                background-color:lemonchiffon;
+                padding: 25px;
+                width: 100%;
+            }
+        div#welcome3{
+                text-align:center;
+                font-family:fantasy;
+                font-size: 60px;
+                font-weight: bold;
+                width: 100%;
+                background-color:lemonchiffon;
+                padding: 25px;
+                width: 100%;
+            }
+        
+        div#loginpart{
+                text-align:center;
+                overflow: auto;
+                margin: 10px 0px 0px 0px;
+                padding-top: 10px;
+            }
+        div#hello1{
+                text-align:center;
+                font-family: fantasy;
+                font-size: 30px;
+            }
+        .loginpart{
+                text-align:center;
+                overflow: auto;
+                width: 100%;
+                margin: 20px 0px 0px 0px;
+                padding-top: 10px;
+                
+        
+            }
+            
+        div#section_1{
+            text-align: center;
+            
+        }
+        input#logout{
+            text-align: center;
+            
+        }
+        div#currentmonth{
+           font-family: fantasy;text-align:center;
+        }
+        
+        .calendar {
+            color:black;
+            width:100%;
+            border-width: 3px;
+            border:solid #FFCC00;
+            font-size:25px;
+            border-radius:5px;
+        }
+        category{
+            text-align:center;
+        }
+        .calendar td {
+            height: 60px;
+            width: 60px;
+            font-size:25px;
+            border-width: 3px;
+            border-color: lightgrey;
+            background-color:lightpink;
+            }
+        
+        .calendar b{
+            padding: 5px;
+            border-style: solid;
+            background-color:lemonchiffon;
+        }
+        
+        /* the below code from http://www.cnblogs.com/yun007/archive/2013/05/20/3088228.html*/
+        .calendar tr:hover {
+            background-color:lightgreen;
+            }
+        .calendar tr:hover td{background:none;}
+        
+        div#blockquote{
+                border-top: 3px solid black;
+                border-bottom: 3px solid black;
+                font-family: Georgia, 'Times New Roman', Times, serif;
+                font-size: 125%;
+                font-style: italic;
+                text-align:center;
+                padding-top: 50px;
+                padding-bottom: 50px;
+            }
+            /*source code: https://gist.github.com/jdrew1303/4079886, only one line*/
+        .blockquote{
+                border-top: 3px solid black;
+                border-bottom: 3px solid black;
+                font-family: Georgia, 'Times New Roman', Times, serif;
+                font-size: 125%;
+                font-style: italic;
+                text-align:center;
+                padding-top: 50px;
+                padding-bottom: 50px;
+            }    
+        
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type ="text/javascript">
+        var username = prompt("please enter your username","input here");// set username first
+        var Room_rightnow;// the room that the user in rightnow
+        var socketio = io.connect();
+        var roomsbuilt = []; //put all room into a array
+        var psdRooms = {}; //put the password and roomname into directory
+        var ban_user = {};// put the room that ban the users
+        //1
+        // source code website: http://nodesource.com/blog/understanding-socketio/
+        socketio.on('connect', function() {
+			// once conncet, put the user into the main room
+			Room_rightnow = "main room";
+            psdRooms["main room"] = "";
+            roomsbuilt.push("main room");
+            socketio.emit('new_user', {username:username});
+            // broadcast the message to other users
+		});
+        //1
+        // code source: https://socket.io/docs/rooms-and-namespaces/
+        socketio.on("message_to_client",function(data) {
+            //Append an HR thematic break and the escaped HTML of the new message
+            document.getElementById("show_all_pubilc").appendChild(document.createElement("hr"));
+            document.getElementById("show_all_pubilc").appendChild(document.createTextNode(data.username+":"+ data.message));
+        });
+  
+        //1
+        socketio.on("entered_room", function(data){
+            //Append an HR thematic break and the escaped HTML of the new message
+            document.getElementById("show_all_pubilc").appendChild(document.createElement("hr"));
+            document.getElementById("show_all_pubilc").appendChild(document.createTextNode(data.enter + " has just joined the room"));
+        });
+        
+        socketio.on("ban_user", function(data){
+            var ban_user1 = data.ban_user;
+            var ban_room = data.ban_room;
+            ban_user[ban_room]=ban_user1;
+            if(ban_user1 == username){
+                alert("sorry, the chat room owner ban you out");
+                var newroom="main room";
+                socketio.emit("enter_a_room", {enter_room_name:newroom});
+            }
+        });
+        
+        socketio.on("kick_user", function(data){
+            var kick_user = data.kick_user;
+            if(kick_user == username){
+                alert("sorry, the chat room owner kick you out");
+                var newroom="main room";
+                socketio.emit("enter_a_room", {enter_room_name:newroom});
+            }
+        });
+        
+        socketio.on("authorize_user", function(data){
+            var roomname = data.authorize_room;
+            var authorize_user = data.authorize_user;
+            if(authorize_user == username){
+                alert("you have been authrized the right to execute the chat room : "+roomname);
+            }
+        });
+        
+        socketio.on("change_password", function(data){
+            var roomname = data.room;
+            var owner = data.owner;
+            if(owner == username){
+                alert("you have changed the password of the chat room : "+roomname);
+            }
+        });
+        
+        //1
+        socketio.on("showUsers", function(data){
+            Room_rightnow = data.room_now;
+            var room_right_now = data.room_now;
+            var roommapuser = data.allusers;
+            document.getElementById("showallusers").innerHTML ="All the users in the chat room right now: "+"<br>";
+            //Update the list of useres in the current chatroom
+            for(var i in roommapuser){
+              if(roommapuser[i] == room_right_now){
+                document.getElementById("showallusers").innerHTML += i +" is in "+room_right_now+"<br>";
+                console.log(i);
+              }
+            }
+            
+        });
+        
+        //1
+        socketio.on("renewRoom", function(data){
+            //Updates the body of the chatlog
+            var string = data.name + " has connected to the chat room. " ;
+            document.getElementById("show_all_pubilc").appendChild(document.createElement("hr"));
+            document.getElementById("show_all_pubilc").appendChild(document.createTextNode(string));
+        });
+        
+        //1
+        socketio.on("AddnewRoom", function(data){
+            //Updates the list of available chat rooms after one is added
+            
+            document.getElementById("show_all_rooms").innerHTML = "All Room name: "+"<br>";
+            roomsBuilt = data.pswRoom;
+            for (var s in roomsBuilt){
+                if(roomsBuilt[s] !== undefined){
+              
+              document.getElementById("show_all_rooms").innerHTML +=  roomsBuilt[s] +"<br>";
+              console.log(roomsBuilt[s]+" just be created");
+            }}
+            
+        });
+        
+        //1
+        socketio.on("private_message",function(data) {
+            //send private message
+            var private_receiver = data.receiver;
+			var private_message = data.message;
+            var private_sender = data.sender;
+            if(private_receiver == username ){
+                alert("some one send you a message");
+                var info = private_sender + " : "+private_message;
+                document.getElementById("show_all_private").appendChild(document.createElement("hr"));
+                document.getElementById("show_all_private").appendChild(document.createTextNode(info));
+            }
+           
+            
+        });
+        //1
+        socketio.on("private_message_error",function() {
+           alert("send the message unsuccessfully, because you're not in the same chat room");
+        
+        });
+        
+        
+        socketio.on("kick_out_error",function() {
+           alert("you're not the owner, you can't kick anyone out! Or you already kicked him out");
+        
+        });
+        
+        socketio.on("authorize_error",function() {
+           alert("you're not the owner, you can't authorize anyone! or your already authorized him");
+        
+        });
+        
+        socketio.on("change_password_error",function() {
+           alert("you're not the owner, you can't change the password of this chat room");
+        
+        });
+        
+        socketio.on("ban_error",function() {
+           alert("you're not the owner, you can't ban anyone! Or you already ban him out");
+        
+        });
+        
+        //1
+        // code source : https://classes.engineering.wustl.edu/cse330/index.php?title=Socket.IO
+        function sendMessage(){
+           var msg = document.getElementById("public_message").value;
+           document.getElementById("public_message").value = "";
+           socketio.emit("message_to_server", {message:msg, username:username});
+        }
+        
+        //1
+        // code source : https://classes.engineering.wustl.edu/cse330/index.php?title=Socket.IO
+        function private_sendMessage(){
+            var username1 = document.getElementById("private_username").value;
+            var msg1 = document.getElementById("private_message").value;
+            document.getElementById("private_username").value ="";
+            document.getElementById("private_message").value = "";
+            socketio.emit("message_to_private", {sender:username , receiver: username1, message:msg1});
+        }
+        
+        //1
+        function build_chat_room(){
+            // build a new chat room
+            var roomname = document.getElementById("new_room").value;
+            var password = document.getElementById("new_password").value;
+            document.getElementById("new_room").value ="";
+            document.getElementById("new_password").value = "";
+            for (var s in roomsBuilt){
+                if(roomsBuilt[s] === roomname){
+                    //Onclick, prompt the user to enter the password
+                    alert("the room already exists");
+                    return;
+                }
+                
+            }
+            roomsbuilt.push(roomname);
+            psdRooms[roomname] = password;
+            socketio.emit("build_a_room", {new_room_name: roomname, new_room_password:password, owner:username});
+        }
+        
+        //1
+        socketio.on("enter_chat_room", function(data){
+            var roomname = document.getElementById("enter_room").value;
+            var password = document.getElementById("enter_password").value;
+            var password_real = data.password;
+            document.getElementById("enter_room").value ="";
+            document.getElementById("enter_password").value = "";
+            
+            if(ban_user[roomname] ==username){
+                alert("Sorry, the room holder doesn't like you and don't allow you enter the room");
+                return;
+            }
+            else {
+                if(password === password_real|| password_real === ""){
+                    Room_rightnow = roomname;
+                    socketio.emit("enter_a_room", {enter_room_name: roomname, enter_room_password:password, Room_rightnow:Room_rightnow});
+                }
+                else{
+                    alert("Sorry, the room doesn't exist or password doesn't match");
+                    return;
+                }
+            }
+            
+        });
+        //1
+        function getPassword(){
+            var roomname = document.getElementById("enter_room").value;
+            var password = document.getElementById("enter_password").value;
+            //document.getElementById("enter_room").value ="";
+            //document.getElementById("enter_password").value = "";
+            socketio.emit("findPassword", {enter_room_name: roomname, enter_room_password:password, Room_rightnow:Room_rightnow});
+        }
+        //1
+        function kickHim(){
+            // kick some one out of the chat room
+            var username_kick = document.getElementById("kick_someone").value;
+            var executor = username;
+            document.getElementById("kick_someone").value ="";
+            if(username_kick ==executor){
+                alert("your can't kick yourself out");
+                return;
+            }
+            socketio.emit("kick_someone", {username_kick:username_kick, executor: executor});
+        }
+        //1
+        function banHim(){
+            // ban some one from entering the chat room
+            var username_ban = document.getElementById("ban_someone").value;
+            var executor = username;
+            document.getElementById("ban_someone").value = "";
+             if(username_ban ==executor){
+                alert("your can't ban yourself out");
+                return;
+            }
+            socketio.emit("ban_someone", {username_ban:username_ban,executor: executor});
+        }
+        
+        function banHim(){
+            // ban some one from entering the chat room
+            var username_ban = document.getElementById("ban_someone").value;
+            var executor = username;
+            document.getElementById("ban_someone").value = "";
+             if(username_ban ==executor){
+                alert("your can't ban yourself out");
+                return;
+            }
+            socketio.emit("ban_someone", {username_ban:username_ban,executor: executor});
+        }
+        
+        function authorize(){
+            // authorize some one the right
+            var username_authorize = document.getElementById("authorize_name").value;
+            var executor = username;
+            document.getElementById("authorize_name").value = "";
+             if(authorize_name == executor){
+                alert("your can't authorize yourself");
+                return;
+            }
+            socketio.emit("authorize_someone", {username_authorize:username_authorize,executor: executor});
+        }
+        
+        function change_password(){
+            // change the password of a special room
+            var password_change = document.getElementById("change_new_password").value;
+            var room_change = document.getElementById("change_new_room").value;
+            document.getElementById("change_new_room").value = "";
+            document.getElementById("change_new_password").value = "";
+             if(room_change == "main room"){
+                alert("your can't change the property of main room");
+                return;
+            }
+            socketio.emit("change_password", {password_change:password_change,room_change: room_change,user:username});
+        }
+        
+        
+        
+      </script>
+</head>
+<body>
+    <div id="welcome3">
+    
+       <!-- code source: https://stackoverflow.com/questions/21971141/document-write-can-be-a-form-of-eval-->
+       <script type="text/javascript">
+            document.getElementById('welcome3').innerHTML ="Best Chat Site"+"<br>";
+            document.getElementById('welcome3').innerHTML += "Hi, "+ username;
+            
+        </script>
+    
+    </div>
+        
+        <br>
+        
+       
+    
+            <!-- input the new username and password-->
+         <div class="loginpart" id = "create_room">
+            <label>Creat Room:<input type="text" id ="new_room" name="new_room" placeholder="input new room name" required></label>
+            <label>Password:<input type="text" id ="new_password" name="new_password" placeholder = "input password here" required></label><br>
+            <br>
+            <input type="submit" name="submit_register" id="button_newroom" value="Creat">
+        </div>
+        
+        <div class="loginpart" id = "join_room">
+            <label>Room name:<input type="text" id ="enter_room" name="enter_room" placeholder="input the room name you want to enter" required></label>
+            <label>Password:<input type="text" id ="enter_password" name="enter_password" placeholder = "input password here" required></label><br>
+            <br>
+            <input type="submit" name="submit_enter" id="button_enterroom" value="Enter">
+        </div>
+        <div class="loginpart" id = "forall_message">
+            <label>Public Message:<input type="text" id ="public_message" name="public_message" placeholder="input the message" required></label>
+            <br><br>
+            <input type="submit" name="submit_public_message" id="submit_public_message" value="Send">
+        </div>
+        <div class="loginpart" id = "forone_message">
+            <label>Private Message:<input type="text" id ="private_message" name="private_message" placeholder="input the message" required></label>
+            <label>User name:<input type="text" id ="private_username" name="private_username" placeholder="input the user name" required></label>
+            <br><br>
+            <input type="submit" name="submit_private_message" id="submit_private_message" value="Send">
+        </div>
+        
+        <div class="loginpart" id = "kickuser">
+            <label>User name:<input type="text" id ="kick_someone" name="kick_someone" placeholder="input the user name" required></label>
+            <br><br>
+            <input type="submit" name="kick_user" id="kick_user" value="Kick Out">
+        </div>
+        
+        <div class="loginpart" id = "banuser">
+            <label>User name:<input type="text" id ="ban_someone" name="ban_someone" placeholder="input the user name" required></label>
+            <br><br>
+            <input type="submit" name="ban_user" id="ban_user" value="Ban">
+        </div>
+        
+        <div class="loginpart" id = "authorize_user">
+            <label>User name:<input type="text" id ="authorize_name" name="authorize_name" placeholder="input the user name" required></label>
+            <br><br>
+            <input type="submit" name="authorize" id="authorize" value="Authorize">
+        </div>
+        
+        <div class="loginpart" id = "change_roompassword">
+            <label>Room name:<input type="text" id ="change_new_room" name="change_new_room" placeholder="input the room name you want to change" required></label>
+            <label>New Password:<input type="text" id ="change_new_password" name="change_new_password" placeholder = "input new password here" required></label><br>
+            <br>
+            <input type="submit" name="change_password" id="change_password" value="Change">
+        </div>
+        
+        <br>
+        <div  class = "blockquote" id = "showallusers">
+            All users:
+        </div>
+        <br>
+        <div class = "blockquote" id = "show_all_pubilc">
+            
+            Public message:
+            
+        </div>
+        <br>
+        <div class = "blockquote" id = "show_all_private">
+            
+            Private message:
+            
+        </div>
+        <br>
+        <div class = "blockquote" id = "show_all_rooms">
+            
+            All Room name:
+            
+        </div>
+        <br>
+        
+
+    <script>
+        document.getElementById('submit_public_message').addEventListener("click",sendMessage,false);
+        document.getElementById('submit_private_message').addEventListener("click",private_sendMessage,false);
+        document.getElementById('button_newroom').addEventListener("click",build_chat_room,false);
+        document.getElementById('button_enterroom').addEventListener("click",getPassword,false);
+        document.getElementById('kick_user').addEventListener("click",kickHim,false);
+        document.getElementById('ban_user').addEventListener("click",banHim,false);
+        document.getElementById('authorize').addEventListener("click",authorize,false);
+        document.getElementById('change_password').addEventListener("click",change_password,false);
+    </script>
+</body>
+</html>
